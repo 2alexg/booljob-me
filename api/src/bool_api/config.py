@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     # Direct Postgres connection (bypasses RLS; authorization lives in this service).
     database_url: SecretStr | None = None
 
+    # Background jobs (Upstash QStash, Frankfurt region).
+    qstash_url: str = "https://qstash-eu-central-1.upstash.io"
+    qstash_token: SecretStr | None = None
+    qstash_current_signing_key: SecretStr | None = None
+    qstash_next_signing_key: SecretStr | None = None
+    # Public base URL of the worker service. QStash delivers to it, and the
+    # signature check compares the signed URL against it.
+    worker_public_url: str | None = None
+    job_max_retries: int = Field(default=3, ge=0, le=5)
+
+    # Admin alerts. Messages carry IDs only (bool_api.alerts enforces this).
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: str | None = None
+
     @property
     def jwt_issuer(self) -> str | None:
         if self.supabase_url is None:

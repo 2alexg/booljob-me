@@ -124,16 +124,20 @@ if ! g secrets versions list internal-secret --limit 1 --format 'value(name)' | 
   echo "    generated internal-secret"
 fi
 
-echo "==> Cloud Run: bool-api accepts unauthenticated calls (guarded by X-Internal-Secret)"
+echo "==> Cloud Run: public services without Google-identity checks"
 # The org policy (iam.allowedPolicyMemberDomains) forbids granting allUsers, so the
 # invoker IAM check is disabled instead. Needs run.admin, so it is done here rather
-# than by bool-deployer. The worker keeps its IAM check (private until S1-07).
-if exists run services describe bool-api --region "$REGION"; then
-  g run services update bool-api --region "$REGION" --no-invoker-iam-check >/dev/null
-  echo "    invoker IAM check disabled on bool-api"
-else
-  echo "    bool-api not deployed yet: re-run this script after the first deploy"
-fi
+# than by bool-deployer. Each service authenticates callers itself:
+#   bool-api:    X-Internal-Secret from the Vercel BFF
+#   bool-worker: QStash request signatures
+for svc in bool-api bool-worker; do
+  if exists run services describe "$svc" --region "$REGION"; then
+    g run services update "$svc" --region "$REGION" --no-invoker-iam-check >/dev/null
+    echo "    invoker IAM check disabled on $svc"
+  else
+    echo "    $svc not deployed yet: re-run this script after the first deploy"
+  fi
+done
 
 cat <<EOF
 
