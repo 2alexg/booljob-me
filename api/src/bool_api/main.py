@@ -15,7 +15,9 @@ from bool_api.logging_setup import configure_logging
 log = logging.getLogger(__name__)
 
 # Liveness only; reveals nothing. Everything else requires X-Internal-Secret.
-PUBLIC_PATHS = frozenset({"/healthz"})
+# Never use paths ending in "z" (/healthz, /readyz): Cloud Run's front end
+# reserves them and answers 404 itself.
+PUBLIC_PATHS = frozenset({"/health"})
 
 
 def create_app(
@@ -70,12 +72,12 @@ def create_app(
         exempt_paths=PUBLIC_PATHS,
     )
 
-    @app.get("/healthz")
-    def healthz() -> dict[str, str]:
+    @app.get("/health")
+    def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/readyz")
-    async def readyz(request: Request) -> dict[str, str]:
+    @app.get("/ready")
+    async def ready(request: Request) -> dict[str, str]:
         pool = request.app.state.db_pool
         if pool is None:
             return {"status": "ok", "database": "not_configured"}

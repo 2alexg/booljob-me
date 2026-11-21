@@ -22,7 +22,7 @@ pnpm vitest run src/lib/site.test.ts   # single test file
 cd api && uv sync
 uv run uvicorn bool_api.main:app --reload
 uv run ruff check && uv run ruff format --check && uv run pytest
-uv run pytest tests/test_health.py::test_healthz   # single test
+uv run pytest tests/test_health.py::test_health_is_public   # single test
 
 # supabase/ (run from repo root)
 pnpm supabase db start && pnpm supabase db reset   # apply all migrations from scratch

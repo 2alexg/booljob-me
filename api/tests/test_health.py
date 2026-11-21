@@ -5,14 +5,14 @@ from bool_api.worker import create_app as create_worker_app
 from tests.conftest import headers
 
 
-def test_healthz_is_public(client: TestClient) -> None:
-    response = client.get("/healthz")
+def test_health_is_public(client: TestClient) -> None:
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_readyz_without_database(client: TestClient) -> None:
-    response = client.get("/readyz", headers=headers())
+def test_ready_without_database(client: TestClient) -> None:
+    response = client.get("/ready", headers=headers())
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "database": "not_configured"}
 
@@ -26,6 +26,6 @@ def test_no_public_docs_outside_local(settings: Settings) -> None:
     assert client.get("/openapi.json", headers=headers()).status_code == 404
 
 
-def test_worker_healthz(settings: Settings) -> None:
-    response = TestClient(create_worker_app(settings)).get("/healthz")
+def test_worker_health(settings: Settings) -> None:
+    response = TestClient(create_worker_app(settings)).get("/health")
     assert response.status_code == 200
