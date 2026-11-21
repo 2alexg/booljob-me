@@ -6,9 +6,11 @@
     "node": ">=26"
   },
   "scripts": {
-    "supabase": "supabase"
+    "supabase": "supabase",
+    "vercel": "vercel"
   },
   "devDependencies": {
-    "supabase": "2.122.1"
+    "supabase": "2.122.1",
+    "vercel": "65.12.1"
   }
 }
