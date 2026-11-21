@@ -23,6 +23,7 @@ cd api && uv sync
 uv run uvicorn bool_api.main:app --reload
 uv run ruff check && uv run ruff format --check && uv run pytest
 uv run pytest tests/test_health.py::test_health_is_public   # single test
+uv run python -m bool_api.cli publish debug.ping          # send a job via QStash (needs BOOL_QSTASH_TOKEN, BOOL_WORKER_PUBLIC_URL)
 
 # supabase/ (run from repo root)
 pnpm supabase db start && pnpm supabase db reset   # apply all migrations from scratch
@@ -76,6 +77,8 @@ Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platfo
 - unlock gating
 
 The module needs a test for every state × role combination. It lives in `api/src/bool_api/policy/` (state machine in `states.py`, visibility and transition authorization in `access.py`, field allowlist in `redaction.py`); the rules it implements are written out in design doc §2.7. Tests: `api/tests/test_policy_*.py`, with the expected tables written by hand.
+
+**Background jobs** (`api/src/bool_api/jobs.py`, `worker.py`, `qstash.py`): register a handler with `@job("area.name")`; QStash delivers it to `POST /jobs/<name>` on the worker, which accepts only requests with a valid QStash signature for that exact URL (no X-Internal-Secret on the worker). A handler that raises returns 500, so QStash retries; after the last retry the message lands in the QStash DLQ and `POST /qstash/failure` sends a Telegram alert. Schedules are declared in `SCHEDULES` (ids prefixed `bool-`, cron in `Asia/Jerusalem`) and synced to QStash on worker startup; stale `bool-*` schedules are deleted. `debug.*` jobs are refused in prod. Alerts go through `bool_api.alerts`, which only lets IDs through (ints, UUIDs, short tokens) and redacts everything else.
 
 ## Invariants that span multiple components
 

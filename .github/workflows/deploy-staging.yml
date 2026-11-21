@@ -54,7 +54,8 @@ jobs:
           gcloud run deploy bool-worker --quiet \
             --project "$PROJECT" --region "$REGION" --image "$IMAGE" \
             --service-account "bool-worker@$PROJECT.iam.gserviceaccount.com" \
-            --set-env-vars BOOL_ENVIRONMENT=staging,APP_FACTORY=bool_api.worker:create_app \
+            --set-env-vars BOOL_ENVIRONMENT=staging,APP_FACTORY=bool_api.worker:create_app,BOOL_WORKER_PUBLIC_URL=${{ vars.WORKER_PUBLIC_URL }},BOOL_QSTASH_URL=${{ vars.QSTASH_URL }},BOOL_TELEGRAM_CHAT_ID=${{ vars.TELEGRAM_CHAT_ID }} \
+            --set-secrets BOOL_QSTASH_TOKEN=qstash-token:latest,BOOL_QSTASH_CURRENT_SIGNING_KEY=qstash-current-signing-key:latest,BOOL_QSTASH_NEXT_SIGNING_KEY=qstash-next-signing-key:latest,BOOL_TELEGRAM_BOT_TOKEN=telegram-bot-token:latest \
             --cpu 1 --memory 512Mi --min-instances 0 --max-instances 3
 
       - name: Smoke test
@@ -62,3 +63,7 @@ jobs:
           URL=$(gcloud run services describe bool-api --project "$PROJECT" --region "$REGION" --format 'value(status.url)')
           test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/health")" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/v1/me")" = 403
+          W=${{ vars.WORKER_PUBLIC_URL }}
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$W/health")" = 200
+          # Unsigned job requests must be rejected.
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$W/jobs/debug.ping")" = 401
