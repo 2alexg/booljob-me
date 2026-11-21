@@ -20,7 +20,7 @@ To address the sensitivity of the Israeli job market (preventing an employer fro
 ### 2.1 Employer Blocklist (Automatic & Manual)
 
 * Blocking is by **`company_id`**, never by raw name string. Company names are resolved through a `company_aliases` table (Hebrew/English spellings, legal names, common abbreviations, e.g. "אינטל" / "Intel Israel" / "Intel Corp"), and blocks propagate through `parent_company_id` to subsidiaries and parents.
-* During CV parsing, the AI extracts the candidate's current employer (`is_current = True`), resolves it to a `company_id`, and adds it to `candidates.blocked_company_ids`. Candidates can manually add more companies via an autocomplete over companies + aliases.
+* During CV parsing, the AI extracts the candidate's current employer (`is_current = True`), resolves it to a `company_id`, and adds it to the candidate's blocklist (`candidate_blocked_companies`). Candidates can manually add more companies via an autocomplete over companies + aliases.
 * Names that cannot be resolved to a known company are kept in `blocked_company_names_unresolved` and matched conservatively (normalized fuzzy match against company name + aliases). On a possible match, the job/company is excluded.
 * Blocked companies never see the candidate's profile, not even anonymized, and their jobs are never matched to the candidate.
 
@@ -212,16 +212,17 @@ Bool processes CVs at scale and sends personal data to an LLM provider outside I
 
 ## 8. Database Schema Summary (PostgreSQL + pgvector + PostGIS)
 
-* **users & user_oauth_accounts:** Core identity, dual verification flags (`email_verified`, `phone_verified`), multi-role array (`roles`), OAuth provider links, consent records.
-* **candidates:** `locality_id` (region and commute point derived from it), CV URL, parsed JSON, dynamic quiz questions & answers, hard constraints (`min_salary_expected`, `max_commute_km`, `preferred_work_models`, skill IDs, `blocked_company_ids`, `blocked_company_names_unresolved`), `last_active_at`, and `vector(1536)` embedding. **No birth date.**
+* **users & user_consents:** Core identity (keyed to Supabase `auth.users`), dual verification flags (`email_verified`, `phone_verified`), multi-role array (`roles`), and versioned consent records. OAuth provider links are not duplicated: they live in Supabase's `auth.identities`.
+* **candidates:** `locality_id` (region and commute point derived from it), CV URL, parsed JSON, dynamic quiz questions & answers, hard constraints (`min_salary_expected_monthly_ils`, `max_commute_km`, `preferred_work_models`, `blocked_company_names_unresolved`), skills via `candidate_skills`, resolved blocklist via `candidate_blocked_companies`, `last_active_at`, and `vector(1536)` embedding. **No birth date.**
 * **companies, company_aliases & employers:** Company metadata, `parent_company_id`, aliases (Hebrew/English names), ATS configuration, `is_claimed` status, tax ID (ח.פ.), billing email, payment gateway token, and `credit_balance_agorot`.
 * **jobs:** Supports both `scraped_ats` and `direct_employer` sources, `title_original`, `title_he`, `is_confidential` flag, structured requirements, `locality_id` (nullable), `cost_per_action_agorot`, and `vector(1536)` embedding.
 * **localities, locality_aliases & regions:** Government localities seed, spelling variants, locality-level `GEOGRAPHY` point, and locality → product region mapping (§5.C).
 * **skills & skill_aliases:** Self-grown taxonomy with `status` (`approved` / `pending` / `rejected`) (§5.D).
 * **match_feedback:** Candidate's relevance rating per match (`relevant` / `not_relevant`, optional reason), which feeds the Phase 1 success metric (§9).
-* **matches:** Tracks the state machine for both flows. External flow (§2.2): `suggested → candidate_viewed → applied_external / dismissed_by_candidate`. Double opt-in flow (§2.3): `suggested → employer_interested → candidate_revealed_job → mutual_interest → unlocked_by_employer`, `suggested → candidate_interested → mutual_interest`, plus terminal `declined_by_candidate`, `declined_by_employer`, `withdrawn_by_candidate`, `expired`, `closed` (§2.5). Also stores `vector_similarity_score`, `ai_rerank_score`, `ai_explanation_he`, and per-state timestamps.
+* **matches:** Tracks the state machine for both flows. External flow (§2.2): `suggested → candidate_viewed → applied_external / dismissed_by_candidate`. Double opt-in flow (§2.3): `suggested → employer_interested → candidate_revealed_job → mutual_interest → unlocked_by_employer`, `suggested → candidate_interested → mutual_interest`, plus terminal `declined_by_candidate`, `declined_by_employer`, `withdrawn_by_candidate`, `expired`, `closed` (§2.5). Also stores `vector_similarity_score`, `ai_rerank_score`, `ai_explanation_he`, `status_changed_at`, and `expires_at`. Every transition is recorded in **match_status_events** (from/to status, actor). The DB only checks that a status belongs to its flow. Legal transitions are enforced by the FastAPI policy module.
 * **analytics_events & credit_transactions:** Idempotent billing event log (enforced via unique partial index on billable events) and prepaid wallet ledger linked to Israeli payment/invoicing providers (Morning / Meshulam / CardCom) with row-level locking (`SELECT ... FOR UPDATE`) to prevent double charges.
-* **ai_interaction_logs:** Audit trail of all LLM inputs, outputs, prompt versions, and admin QA ratings, subject to the retention policy (§7).
+* **ai_interaction_logs & ai_log_access:** Audit trail of all LLM inputs, outputs, prompt versions, and admin QA ratings, subject to the retention policy (§7). Every admin read is recorded in `ai_log_access`.
+* **Money units:** Billing amounts are integer agorot. Salaries are whole shekels per month (`*_monthly_ils`).
 
 ## 9. Phased MVP Execution Roadmap
 

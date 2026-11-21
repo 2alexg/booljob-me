@@ -56,3 +56,5 @@ jobs:
         run: pnpm supabase db start
       - name: Apply all migrations from scratch
         run: pnpm supabase db reset
+      - name: Run database tests (pgTAP)
+        run: pnpm supabase test db
