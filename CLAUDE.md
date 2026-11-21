@@ -38,6 +38,8 @@ CI (`.github/workflows/ci.yml`) runs the web, api and migration checks above on 
 
 GCP setup is scripted and idempotent: `infra/gcp/bootstrap.sh <project-id> <staging|prod>`. Staging is `booljob-me-staging`. GitHub Actions authenticates through Workload Identity Federation (variables in the `staging` GitHub environment); there are no service-account keys.
 
+Vercel: team `bool-job-me`, project `bool-web` (root `web/`, Node 26, functions pinned to `fra1` in `web/vercel.json`). The Vercel CLI is a pinned root dev dependency: run `pnpm vercel ...`. Environments: custom environment `staging` tracks `main`; Production tracks a `production` branch (prod not live yet); PR previews use the staging API. `BOOL_API_URL` and `BOOL_INTERNAL_SECRET` (sensitive) are set per environment with `vercel env`.
+
 ## What Bool is
 
 Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platform for the Israeli market. The UI is Hebrew-first and RTL, and must meet the Israeli accessibility standard (IS 5568 / WCAG 2.0 AA). Candidate-facing AI text (quiz questions, match explanations, normalized job titles) is generated in Hebrew. Billing money is stored as integer **agorot**; salaries as whole shekels per month (`*_monthly_ils`). Phones are Israeli mobiles in E.164 format (`+9725...`).
