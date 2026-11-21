@@ -78,6 +78,44 @@ Expiry windows are configuration values. Expiry is enforced by the nightly lifec
 
 After the company name is revealed, a candidate may apply directly, and a recruiter may try to find a candidate from a card. Mitigations in MVP: coarsened cards (§2.4); terms of service for employers prohibiting circumvention of matches surfaced through Bool; logging of reveal events for attribution. Whether to add a placement-attribution fee is an open decision (§10).
 
+### 2.7 Authorization Rules (as implemented)
+
+The rules in §2.1–§2.5 are implemented in one place, `api/src/bool_api/policy/`, and covered by exhaustive table-driven tests. Where §2.1–§2.5 left a case open, the conservative choice below applies.
+
+**Transitions.**
+* A candidate may dismiss a scraped-job suggestion without opening it (`suggested → dismissed_by_candidate`).
+* A candidate may decline employer interest without revealing the job (`employer_interested → declined_by_candidate`), but accepting requires the reveal first.
+* Withdrawal is allowed from every open pre-unlock state, including `suggested`.
+* `expired` and `closed` are set only by the system worker.
+* `unlocked_by_employer` is the only paid transition. Billing must confirm the debit.
+
+**Expiry clock.** Entering `employer_interested`, `candidate_interested` or `mutual_interest` starts a fresh 14-day clock. Revealing the job keeps the clock started by employer interest.
+
+**What the employer sees of the candidate** (direct-employer jobs only; employers never see scraped-job matches):
+
+| State | Employer view |
+| :---- | :---- |
+| `suggested` | Anonymized card, only if `ai_rerank_score >= 80`; otherwise nothing |
+| `employer_interested`, `candidate_interested`, `candidate_revealed_job`, `mutual_interest` | Anonymized card |
+| `unlocked_by_employer` | Full identity and contact details (the only such state) |
+| `declined_by_candidate`, `declined_by_employer`, `expired` | Status only, no candidate fields |
+| `withdrawn_by_candidate`, `closed` | Nothing: the match disappears for the employer |
+
+If the company is on the candidate's blocklist, the employer sees nothing and cannot act, in every state.
+
+**What the candidate sees of the company:**
+* Scraped jobs: always named.
+* Direct-employer jobs:
+  * Named only in `candidate_revealed_job`, `mutual_interest` and `unlocked_by_employer`.
+  * Confidential jobs show a generic profile in those states.
+  * Hidden in all other states, including after the match ends.
+
+**Other rules:**
+* A candidate sees a `suggested` match only if `ai_rerank_score >= 75`.
+* Nobody may act on a match they cannot see.
+* **Admins** see anonymized cards only. Revealing identity to an admin needs a separate, audited path.
+* **Candidate fields** pass through an allowlist: an anonymized card exposes only region, experience band, skills, work models and the de-identified summary. Any new field stays hidden until it is added to the allowlist.
+
 ## 3. System Architecture & Managed Cloud Infrastructure
 
 To minimize server maintenance, OS patching, and upfront infrastructure costs while enforcing strict security and SEO requirements, **Bool** uses a **Three-Tier Managed Cloud Architecture**:
@@ -111,6 +149,8 @@ All services are hosted in **Western Europe, co-located in Frankfurt**, so that 
 | Vertex AI (Gemini, embeddings) | `europe-west3`, or the nearest EU region where the chosen models are available (verified in S1-08) |
 | Vercel serverless functions (BFF) | `fra1` (Frankfurt) |
 | Upstash Redis / QStash | `eu-central-1` (Frankfurt) |
+
+Upstash details: Redis databases are **Regional** (never Global, which replicates outside the EU) with eviction off. QStash uses the Frankfurt endpoint `https://qstash-eu-central-1.upstash.io`. QStash tokens and signing keys are per Upstash account, so **prod uses a separate Upstash team** and staging can never send or accept prod jobs.
 
 EU hosting is a cross-border transfer of Israeli personal data and is covered by the consent and counsel review in §7.
 
