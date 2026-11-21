@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from tests.conftest import headers
 
 
-@pytest.mark.parametrize("path", ["/readyz", "/v1/me", "/does-not-exist"])
+@pytest.mark.parametrize("path", ["/ready", "/v1/me", "/does-not-exist"])
 def test_missing_secret_is_forbidden(client: TestClient, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 403
@@ -12,12 +12,12 @@ def test_missing_secret_is_forbidden(client: TestClient, path: str) -> None:
 
 
 def test_wrong_secret_is_forbidden(client: TestClient) -> None:
-    response = client.get("/readyz", headers=headers(secret="wrong-secret"))
+    response = client.get("/ready", headers=headers(secret="wrong-secret"))
     assert response.status_code == 403
 
 
 def test_correct_secret_passes_through(client: TestClient) -> None:
-    assert client.get("/readyz", headers=headers()).status_code == 200
+    assert client.get("/ready", headers=headers()).status_code == 200
     # Unknown route: past the gateway, so a normal 404 rather than 403.
     assert client.get("/does-not-exist", headers=headers()).status_code == 404
 

@@ -60,5 +60,5 @@ jobs:
       - name: Smoke test
         run: |
           URL=$(gcloud run services describe bool-api --project "$PROJECT" --region "$REGION" --format 'value(status.url)')
-          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/healthz")" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/health")" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/v1/me")" = 403

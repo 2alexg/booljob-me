@@ -22,8 +22,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Bool Worker", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = settings
 
-    @app.get("/healthz")
-    def healthz() -> dict[str, str]:
+    @app.get("/health")
+    def health() -> dict[str, str]:
         return {"status": "ok"}
 
     return app
