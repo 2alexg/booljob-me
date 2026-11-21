@@ -33,6 +33,8 @@ CI (`.github/workflows/ci.yml`) runs the web, api and migration checks above on 
 
 **Next.js 16 differs from older versions.** Read `web/AGENTS.md` and the docs bundled in `web/node_modules/next/dist/docs/` before writing web code. `next dev` regenerates `web/AGENTS.md`; commit it as is.
 
+GCP setup is scripted and idempotent: `infra/gcp/bootstrap.sh <project-id> <staging|prod>`. Staging is `booljob-me-staging`. GitHub Actions authenticates through Workload Identity Federation (variables in the `staging` GitHub environment); there are no service-account keys.
+
 ## What Bool is
 
 Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platform for the Israeli market. The UI is Hebrew-first and RTL, and must meet the Israeli accessibility standard (IS 5568 / WCAG 2.0 AA). Candidate-facing AI text (quiz questions, match explanations, normalized job titles) is generated in Hebrew. Money is stored as integer **agorot**. Phones are Israeli mobiles in E.164 format (`+9725...`).
