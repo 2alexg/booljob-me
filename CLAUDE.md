@@ -27,7 +27,10 @@ uv run pytest tests/test_health.py::test_healthz   # single test
 # supabase/ (run from repo root)
 pnpm supabase db start && pnpm supabase db reset   # apply all migrations from scratch
 pnpm supabase migration new <name>                 # new SQL migration
+pnpm supabase test db                              # pgTAP tests in supabase/tests/database/
 ```
+
+Every new table in `public` must `enable row level security` in its migration and grant nothing to `anon`/`authenticated`. `supabase/tests/database/lockdown_test.sql` fails otherwise.
 
 CI (`.github/workflows/ci.yml`) runs the web, api and migration checks above on every PR.
 
@@ -35,7 +38,7 @@ CI (`.github/workflows/ci.yml`) runs the web, api and migration checks above on 
 
 ## What Bool is
 
-Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platform for the Israeli market. The UI is Hebrew-first and RTL, and must meet the Israeli accessibility standard (IS 5568 / WCAG 2.0 AA). Candidate-facing AI text (quiz questions, match explanations, normalized job titles) is generated in Hebrew. Money is stored as integer **agorot**. Phones are Israeli mobiles in E.164 format (`+9725...`).
+Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platform for the Israeli market. The UI is Hebrew-first and RTL, and must meet the Israeli accessibility standard (IS 5568 / WCAG 2.0 AA). Candidate-facing AI text (quiz questions, match explanations, normalized job titles) is generated in Hebrew. Billing money is stored as integer **agorot**; salaries as whole shekels per month (`*_monthly_ils`). Phones are Israeli mobiles in E.164 format (`+9725...`).
 
 ## Repo & hosting
 
