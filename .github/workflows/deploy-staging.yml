@@ -45,7 +45,7 @@ jobs:
           gcloud run deploy bool-api --quiet \
             --project "$PROJECT" --region "$REGION" --image "$IMAGE" \
             --service-account "bool-api@$PROJECT.iam.gserviceaccount.com" \
-            --set-env-vars BOOL_ENVIRONMENT=staging \
+            --set-env-vars BOOL_ENVIRONMENT=staging,BOOL_SUPABASE_URL=${{ vars.SUPABASE_URL }} \
             --set-secrets BOOL_INTERNAL_SECRET=internal-secret:latest \
             --cpu 1 --memory 512Mi --min-instances 0 --max-instances 3
 
