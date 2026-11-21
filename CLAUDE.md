@@ -75,7 +75,7 @@ Bool (booljob.me) is an AI-powered, privacy-first, two-sided job matching platfo
 - per-state redaction of candidate fields
 - unlock gating
 
-The module needs a test for every state × role combination.
+The module needs a test for every state × role combination. It lives in `api/src/bool_api/policy/` (state machine in `states.py`, visibility and transition authorization in `access.py`, field allowlist in `redaction.py`); the rules it implements are written out in design doc §2.7. Tests: `api/tests/test_policy_*.py`, with the expected tables written by hand.
 
 ## Invariants that span multiple components
 
