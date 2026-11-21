@@ -4,7 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Pre-implementation. The repo has no code yet, so there are no build, lint, or test commands. The source of truth is `docs/BoolJob.me - Product & Technical Design.md`. Read it before designing anything. Its §10 lists decisions that are still open. Add commands to this file once the frontend/backend are scaffolded.
+Early Sprint 1. The monorepo is scaffolded (S1-01), but there is no product code yet. The source of truth is `docs/BoolJob.me - Product & Technical Design.md`. Read it before designing anything. Its §9.1 has the Sprint 1 tasks and its §10 lists decisions that are still open.
+
+## Commands
+
+Toolchain: Node 26 (`.node-version`), pnpm 10, uv, Python 3.13 (`api/.python-version`). The Supabase CLI is a pinned dev dependency at the repo root, so always run it as `pnpm supabase ...`, never through a global install. Docker is required for the local Supabase stack.
+
+```bash
+pnpm install                      # repo root: installs web + Supabase CLI
+
+# web/ (Next.js 16)
+cd web && pnpm dev                # dev server
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm vitest run src/lib/site.test.ts   # single test file
+
+# api/ (FastAPI)
+cd api && uv sync
+uv run uvicorn bool_api.main:app --reload
+uv run ruff check && uv run ruff format --check && uv run pytest
+uv run pytest tests/test_health.py::test_healthz   # single test
+
+# supabase/ (run from repo root)
+pnpm supabase db start && pnpm supabase db reset   # apply all migrations from scratch
+pnpm supabase migration new <name>                 # new SQL migration
+```
+
+CI (`.github/workflows/ci.yml`) runs the web, api and migration checks above on every PR.
+
+**Next.js 16 differs from older versions.** Read `web/AGENTS.md` and the docs bundled in `web/node_modules/next/dist/docs/` before writing web code. `next dev` regenerates `web/AGENTS.md`; commit it as is.
 
 ## What Bool is
 
